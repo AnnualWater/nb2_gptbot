@@ -10,6 +10,7 @@ import openai
 from nonebot import get_bot
 from nonebot.adapters.onebot.v11 import MessageEvent, MessageSegment, PrivateMessageEvent
 from nonebot.plugin import on_startswith
+from nonebot_plugin_apscheduler import scheduler
 
 from .config import openai_api_key, openai_model_name, openai_proxy, session_max
 
@@ -25,6 +26,14 @@ if openai_model_name == "":
 session: dict[int, list] = {}
 
 
+# 定时清理
+@scheduler.scheduled_job("cron", hour="*/8")
+def auto_clear():
+    global session
+    session = {}
+    return
+
+
 # 响应函数
 async def next_session(user_id, args) -> dict[str, str | bool]:
     if user_id not in session:
@@ -37,7 +46,7 @@ async def next_session(user_id, args) -> dict[str, str | bool]:
         )
     except Exception as err:
         print(err)
-        return {"success": False, "err": err}
+        return {"success": False, "err": str(err)}
     res = res_.choices[0].message.content
     while res.startswith("\n") != res.startswith("？"):
         res = res[1:]
